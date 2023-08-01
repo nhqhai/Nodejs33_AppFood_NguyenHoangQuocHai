@@ -1,0 +1,158 @@
+USE Nodejs33_AppFood;
+
+#Tạo Table
+
+CREATE TABLE food_type(
+	type_id INT PRIMARY KEY AUTO_INCREMENT,
+	type_name VARCHAR(100)
+)
+
+CREATE TABLE food (
+	food_id INT PRIMARY KEY AUTO_INCREMENT,
+	food_name VARCHAR(200),
+	image VARCHAR(200),
+	price FLOAT,
+	description VARCHAR(200),
+	type_id INT
+)
+
+ALTER TABLE food 
+	ADD FOREIGN KEY (type_id) REFERENCES food_type(type_id);
+
+CREATE TABLE sub_food (
+    sub_id INT PRIMARY KEY AUTO_INCREMENT,
+    sub_name VARCHAR(200),
+    sub_price FLOAT,
+    food_id INT,
+    FOREIGN KEY (food_id) REFERENCES food(food_id)
+);
+
+CREATE TABLE user (
+	user_id INT PRIMARY KEY AUTO_INCREMENT,
+	full_name VARCHAR(200),
+	email VARCHAR(200),
+	password VARCHAR(200)
+)
+
+CREATE TABLE orders (
+	user_id INT,
+	FOREIGN KEY (user_id) REFERENCES user(user_id),
+	food_id INT,
+	FOREIGN KEY (food_id) REFERENCES food(food_id),
+	amount INT,
+	code VARCHAR(200),
+	arr_sub_id VARCHAR(200)
+)
+
+CREATE TABLE restaurant(
+	res_id INT PRIMARY KEY AUTO_INCREMENT,
+	res_name VARCHAR(200),
+	image VARCHAR(200),
+	description VARCHAR(200)
+	
+)
+
+CREATE TABLE rate_res(
+	user_id INT,
+	FOREIGN KEY (user_id) REFERENCES user(user_id),
+	res_id INT,
+	FOREIGN KEY (res_id) REFERENCES restaurant(res_id),
+	amount INT,
+	date_rate DATETIME
+)
+
+CREATE TABLE like_res (
+	user_id INT,
+	FOREIGN KEY (user_id) REFERENCES user(user_id),
+	res_id INT,
+	FOREIGN KEY (res_id) REFERENCES restaurant(res_id),
+	date_like DATETIME
+)
+
+#Thêm dữ liệu
+
+INSERT INTO food_type (type_name)
+VALUES ('Italian'), ('Chinese'), ('Indian'), ('Mexican');
+
+INSERT INTO food (food_name, image, price, description, type_id)
+VALUES ('Pizza', 'pizza.jpg', 10.99, 'Delicious pizza', 1),
+       ('Noodles', 'noodles.jpg', 8.99, 'Tasty noodles', 2),
+       ('Curry', 'curry.jpg', 12.99, 'Spicy curry', 3),
+       ('Taco', 'taco.jpg', 6.99, 'Yummy taco', 4);
+
+INSERT INTO sub_food (sub_name, sub_price, food_id)
+VALUES ('Margherita', 8.99, 1),
+       ('Hawaiian', 9.99, 1),
+       ('Chow Mein', 7.99, 2),
+       ('Pad Thai', 9.99, 2),
+       ('Butter Chicken', 11.99, 3),
+       ('Biryani', 13.99, 3),
+       ('Beef Taco', 5.99, 4),
+       ('Chicken Taco', 5.99, 4);
+
+INSERT INTO user (full_name, email, password)
+VALUES ('John Doe', 'john@example.com', 'password123'),
+       ('Jane Smith', 'jane@example.com', 'password456');
+
+INSERT INTO restaurant (res_name, image, description)
+VALUES ('Italian Delights', 'italian.jpg', 'Authentic Italian cuisine'),
+       ('Chinese Palace', 'chinese.jpg', 'Traditional Chinese dishes'),
+       ('Spice Junction', 'indian.jpg', 'Flavorsome Indian food'),
+       ('Mexican Fiesta', 'mexican.jpg', 'Tasty Mexican dishes');
+
+INSERT INTO orders (user_id, food_id, amount, code, arr_sub_id)
+VALUES (1, 1, 2, 'ABC123', '1,2'),
+       (2, 3, 1, 'DEF456', '5');
+
+INSERT INTO rate_res (user_id, res_id, amount, date_rate)
+VALUES (1, 1, 4, '2021-09-15 10:30:00'),
+       (2, 3, 5, '2021-09-16 14:45:00');
+
+INSERT INTO like_res (user_id, res_id, date_like)
+VALUES (1, 2, '2021-09-17 11:20:00'),
+       (2, 4, '2021-09-18 09:00:00');
+       
+# Truy vấn dữ liệu
+
+# Tìm 5 người like nhà hàng nhiều nhất
+SELECT user.user_id, user.full_name, COUNT(*) AS like_count
+FROM like_res
+JOIN user ON like_res.user_id = user.user_id
+GROUP BY user.user_id
+ORDER BY like_count DESC
+LIMIT 5;
+
+#Tìm 2 nhà hàng có lượt like nhiều nhất
+SELECT restaurant.res_id, restaurant.res_name, COUNT(*) AS res_like_count
+FROM rate_res
+JOIN restaurant ON rate_res.res_id = restaurant.res_id
+GROUP BY restaurant.res_id
+ORDER BY res_like_count DESC
+LIMIT 2;
+
+#Tìm người đã đặt hàng nhiều nhất
+SELECT user.user_id, user.full_name, food.food_name, COUNT(*) AS order_count
+FROM orders
+JOIN user ON user.user_id = orders.user_id
+JOIN food ON food.food_id = orders.food_id
+GROUP BY user.user_id, food.food_id
+ORDER BY order_count DESC
+LIMIT 1;
+
+#Tìm người dùng không hoạt động trong hệ thống
+(không đặt hàng, không like, không đánh giá nhà
+hàng)
+SELECT user_id, full_name
+FROM user
+WHERE user_id NOT IN (
+  SELECT DISTINCT user_id FROM orders
+  UNION
+  SELECT DISTINCT user_id FROM rate_res
+  UNION
+  SELECT DISTINCT user_id FROM like_res
+);
+
+#Tính trung bình sub_food của một food
+SELECT AVG(sub_price) AS average_sub_price
+FROM sub_food
+WHERE food_id = '4';
